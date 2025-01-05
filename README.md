@@ -1,4 +1,4 @@
-#Microcontroller PWM Timer Simulator
+# Microcontroller PWM Timer Simulator
 
 This repo have a few examples showing how the timer in a microcontroller works graphically.
 
