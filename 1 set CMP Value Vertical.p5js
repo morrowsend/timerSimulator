@@ -46,7 +46,7 @@ function draw() {
     let pwmState = counter < pwmDutyCycle * waveFrequency;
 
     if (pwmInverted) pwmState = !pwmState;
-    text("Wavelength: " + nf(wavelength, 1, 1) + " ms  |  Frequency: " + nf(frequencyHz, 1, 2) + " Hz", width / 2, 30);
+    text("Prescaler = "+nf(prescaler, 1,1 )+"  |   Wavelength: " + nf(wavelength, 1, 1) + " ms   |   Frequency: " + nf(frequencyHz, 1, 2) + " Hz", width / 2, 30);
 
     // Top: Sawtooth wave plotting
     stroke(0);
