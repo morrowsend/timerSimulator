@@ -2,7 +2,7 @@
 
 This repo have a few examples showing how the timer in a microcontroller works graphically.
 
-The file names "1 set CMP Value Vertical.p5js" is the most up-to-date code with all the features. It is the best file to use to see how 8-bit timers work. Paste its code into [https://editor.p5js.org/](https://editor.p5js.org/)
+The file named "1 set CMP Value Vertical.p5js" is the most up-to-date code with all the features. It is the best file to use to see how 8-bit timers work. Paste its code into [https://editor.p5js.org/](https://editor.p5js.org/)
 
 ==========
 
