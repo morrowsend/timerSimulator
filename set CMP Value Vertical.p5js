@@ -7,8 +7,12 @@ let waveFrequency = 100; // Maximum value for the 8-bit counter (255)
 let pwmDutyCycle = 0.5; // 50% duty cycle for PWM
 let prescaler = 1; // Prescaler to slow down the clock
 let lastTickTime = 0; // Last time in milliseconds when the counter was updated
-let tickInterval = 10; // Time interval for each counter increment in milliseconds
+let tickInterval = 10; // Base time interval for each counter increment in milliseconds
 let cmpVal = 50; //counter PWM compare value
+let lastCycleTime = 0;
+let wavelength = 0;
+let frequencyHz = 0;
+let pwmInverted = true; // New flag for PWM inversion
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
@@ -16,19 +20,23 @@ function setup() {
 
 function draw() {
   background(220);
-
-  // Split screen vertically (top for sawtooth, bottom for PWM)
-  stroke(0);
-  line(0, height / 2, width, height / 2);  // Vertical line at the middle of the screen
+  tickInterval = 10 * prescaler;
 
   pwmDutyCycle = cmpVal / waveFrequency;
 
-  // Top: Display current values of the sawtooth wave
+  // Split screen vertically (top for sawtooth, bottom for PWM)
+  stroke(0);
+  line(0, height / 2, width, height / 2);  // Horizontal line at the middle of the screen
+
+  // Display current values and labels
   fill(0);
   textSize(16);
   textAlign(CENTER, TOP);
   text("Sawtooth Value: " + nf(counter, 0, 2), 10, 10);
-  text("PWM Output Value: " + (counter < pwmDutyCycle * waveFrequency ? "HIGH" : "LOW"), width / 2 + 10, height/2-20);
+  let pwmState = counter < pwmDutyCycle * waveFrequency;
+  if (pwmInverted) pwmState = !pwmState;
+  text("PWM Output Value: " + (pwmState ? "HIGH" : "LOW"), width / 2 + 10, height/2-20);
+  text("Wavelength: " + nf(wavelength, 1, 1) + " ms  |  Frequency: " + nf(frequencyHz, 1, 2) + " Hz", width / 2, 30);
 
   // Top: Sawtooth wave plotting
   stroke(0);
@@ -41,26 +49,32 @@ function draw() {
   }
   endShape();
 
+  // Millisecond clock - control the counter update
   let currentMillis = millis();
   if (currentMillis - lastTickTime >= tickInterval) {
-    lastTickTime = currentMillis; // Update last tick time
+    lastTickTime = currentMillis;
 
     let sawtoothValue = map(counter, 0, 255, height / 2 - 50, 50);
 
     if (wavePosition < width) {
-      // Stretch x spacing by prescaler value
-      for (let i = 0; i < prescaler; i++) {
-        sawtoothWave.push(sawtoothValue);
-        pwmWave.push({ x: wavePosition, y: counter < cmpVal ? height - 10 : height / 2 + 10 });
-        wavePosition++;
-      }
+      sawtoothWave.push(sawtoothValue);
+      let pwmVal = counter < cmpVal;
+      if (pwmInverted) pwmVal = !pwmVal;
+      pwmWave.push({ x: 10 + wavePosition, y: pwmVal ? height - 10 : height / 2 + 10 });
+      wavePosition++;
     } else {
       sawtoothWave = [];
-      wavePosition = 0;
       pwmWave = [];
+      wavePosition = 0;
     }
 
-    counter = (counter + 1) % (waveFrequency + 1);
+    counter++;
+    if (counter > waveFrequency) {
+      counter = 0;
+      wavelength = currentMillis - lastCycleTime;
+      frequencyHz = 1000 / wavelength;
+      lastCycleTime = currentMillis;
+    }
   }
 
   // Green line for Compare (correlating to PWM output value)
@@ -74,23 +88,30 @@ function draw() {
 
   // Red line for Max Counter at the peak of sawtooth
   stroke(139, 0, 0);
-  let topCounterHeight = map(waveFrequency, 0, 255, height / 2 - 50, 50);
-  line(0, topCounterHeight, width, topCounterHeight);
+  let maxCounterHeight = map(waveFrequency, 0, 255, height / 2 - 50, 50);
+  line(0, maxCounterHeight, width, maxCounterHeight);
   fill(139, 0, 0);
   textSize(14);
   textAlign(CENTER, CENTER);
-  text("Top Counter = "+waveFrequency, width / 2, topCounterHeight);
+  text("Max Counter = "+waveFrequency, width / 2, maxCounterHeight);
 
-  // Dark Blue line at the bottom of the sawtooth's value
+  // Blue line at the bottom of sawtooth's value (Counter Bottom = 0)
   stroke(0, 0, 139);
   let minCounterHeight = map(0, 0, 255, height / 2 - 50, 50);
   line(0, minCounterHeight, width, minCounterHeight);
   fill(0, 0, 139);
   textSize(14);
   textAlign(CENTER, CENTER);
-  text("Bottom Counter = 0");
-  
-  
+  text("Counter Bottom = 0", width / 2, minCounterHeight);
+
+  // Dark gray line showing where 255 would be
+  stroke(100);
+  let top255 = map(255, 0, 255, height / 2 - 50, 50);
+  line(0, top255, width, top255);
+  fill(100);
+  textAlign(CENTER, CENTER);
+  text("Counter Max (255)", width / 2, top255);
+
   // Bottom: PWM output representation
   stroke(0);
   noFill();
@@ -110,10 +131,10 @@ function keyPressed() {
     waveFrequency = constrain(waveFrequency - 10, 20, 255);
     print("Wave Frequency = "+waveFrequency );
   } else if (key === 'P' || key === 'p') {
-    prescaler = constrain(prescaler << 1, 1, 255);
+    prescaler = constrain(prescaler <<1, 1, 255);
     print("prescaler = "+prescaler );
   } else if (key === 'O' || key === 'o') {
-    prescaler = constrain(prescaler >> 1, 1, 255);
+    prescaler = constrain(prescaler >>1, 1, 255);
     print("prescaler = "+prescaler );
   } else if (key === 'M' || key === 'm') {
     cmpVal = constrain(cmpVal + 10, 0, waveFrequency);
@@ -121,5 +142,8 @@ function keyPressed() {
   } else if (key === 'N' || key === 'n') {
     cmpVal = constrain(cmpVal - 10, 0, waveFrequency);
     print("New Compare Value = "+cmpVal+"\t Duty Cycle = "+pwmDutyCycle );
+  } else if (key === 'I' || key === 'i') {
+    pwmInverted = !pwmInverted;
+    print("PWM Inverted: "+pwmInverted);
   }
 }
