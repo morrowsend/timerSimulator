@@ -13,7 +13,7 @@ let cmpVal = 50; //counter PWM compare value
 function setup() {
   createCanvas(windowWidth, windowHeight);
 }
-
+ 
 function draw() {
 tickInterval = 10 * prescaler; //update timer if needed
   background(220);
